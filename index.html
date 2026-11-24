@@ -45,9 +45,13 @@ textarea{width:100%;max-width:19em;font:inherit;font-size:.6em;background:#0b103
 .md button{flex:1;padding:.8em .2em;font-size:.55em;--c:#a9b8e8}
 .md button[aria-pressed="true"]{background:#38f5ff30;--c:#38f5ff}
 p#hint{font-size:.6em;min-height:4em}
+.side{display:none}
+@media (hover:hover) and (pointer:fine) and (min-aspect-ratio:5/4){.side{display:block;position:fixed;top:50%;transform:translateY(-50%);width:22vw;max-width:20em;font-size:10px;line-height:2.2;color:#a9b8e8;pointer-events:none}.side h3{margin:0 0 1.2em;font-size:1.3em;color:#38f5ff;text-shadow:0 0 .6em #38f5ff}.side b{color:#ff3cac;font-weight:normal}#sl{left:3vw}#sr{right:3vw}}
 </style>
 </head>
 <body>
+<aside class="side" id="sl"><h3>CONTROLES</h3><b>Vs máquina</b><br>Mouse o ←/→ o A/D<br><br><b>Pausa</b><br>P o Esc</aside>
+<aside class="side" id="sr"><h3>2 JUGADORES</h3><b>Abajo</b><br>Mouse o ←/→<br><br><b>Arriba</b><br>Teclas A y D</aside>
 <div id="stage"><div id="wrap">
   <canvas id="c"></canvas>
   <button id="pbtn" aria-label="Pausa" hidden>II</button>
@@ -109,7 +113,7 @@ function applySave(d){
 }
 
 let dk="n",D=DIFF.n,state="menu",prev="play",ps=0,as=0,rally=0,mr=0,serveT=0,serveDir=1,shake=0,ac=null;
-let ball={x:W/2,y:H/2,vx:0,vy:0},pl={x:W/2,tx:W/2},ai={x:W/2,off:0},trail=[],parts=[],keys={l:0,r:0};
+let ball={x:W/2,y:H/2,vx:0,vy:0},pl={x:W/2,tx:W/2},ai={x:W/2,off:0},trail=[],parts=[],keys={l:0,r:0,l2:0,r2:0};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 function beep(f,d=.07,type="square",v=.05){
@@ -121,7 +125,8 @@ const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
 
 let mode="ai",b2=null,last=null,pu=null,puT=9,big={p:0,a:0},slow=0,rings=[],fl={t:0,s:"",c:"#fff"},mT=null,st=0,shr={p:0,a:0},las=0,lasT=0,lasers=[],obs=[],run={room:1,lives:3,shield:0,wmul:1,pm:1,pud:1,spd:1,pf:1,dmg:1,bricks:[],shots:[],mod:"",bt:0,wind:90,coins:0,clean:0,hurtRoom:0,lv:{}};
 keys.l2=0;keys.r2=0;ai.tx=W/2;
-const MD={ai:["Vs máquina","Arrastra el dedo para mover tu paleta. Gana el primero en llegar a 3."],two:["2 jugadores","Cada uno arrastra el dedo en su mitad de la pantalla. Gana el primero en llegar a 5."],endless:["Rogue","Rompe todos los bloques de cada sala, elige una mejora y sigue. Tienes 3 vidas."],daily:["Diario","El mismo mapa para todos hoy: mismas salas y cartas. Dificultad alta. ¡Supera tu marca!"]};
+const PC=matchMedia("(hover:hover) and (pointer:fine)").matches;
+const MD={ai:["Vs máquina",PC?"Mueve el mouse o usa las teclas ←/→ (o A/D) para mover tu paleta. P o Esc pausan. Gana el primero en llegar a 3.":"Arrastra el dedo para mover tu paleta. Gana el primero en llegar a 3."],two:["2 jugadores",PC?"Abajo: mouse o teclas ←/→. Arriba: teclas A y D. P o Esc pausan. Gana el primero en llegar a 5.":"Cada uno arrastra el dedo en su mitad de la pantalla. Gana el primero en llegar a 5."],endless:["Rogue","Rompe todos los bloques de cada sala, elige una mejora y sigue. Tienes 3 vidas."],daily:["Diario","El mismo mapa para todos hoy: mismas salas y cartas. Dificultad alta. ¡Supera tu marca!"]};
 const PUS={big:["#5dff9a","G"],slow:["#6aa8ff","L"],dbl:["#ffe14d","2"],shr:["#ff8a3c","C"],las:["#ff5d5d","Z"]};
 const TH=[["Neón",""],["Game Boy","grayscale(1) sepia(1) hue-rotate(50deg) saturate(2.5) brightness(.95)"],["Ámbar","grayscale(1) sepia(1) hue-rotate(-18deg) saturate(3.5)"],["Blanco y negro","grayscale(1) contrast(1.15)"],["Vaporwave","hue-rotate(70deg) saturate(1.3)"]];
 const MODS=["fog","wind","fast","small","armor","loot","mirror","grav"],MODN={fog:"Niebla",wind:"Viento",fast:"Pelota rápida",small:"Paleta chica",armor:"Bloques blindados",loot:"Botín x2",mirror:"Espejo",grav:"Gravedad"};
@@ -549,12 +554,12 @@ function fit(){
 function ptr(e){
   if(state!=="serve"&&state!=="play")return;
   const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
-  if(mode==="two"&&y<H/2)ai.tx=x;else pl.tx=(mode==="endless"&&run.mod==="mirror")?W-x:x;
+  if(mode==="two"&&y<H/2&&e.pointerType!=="mouse")ai.tx=x;else pl.tx=(mode==="endless"&&run.mod==="mirror")?W-x:x;
 }
 function pause(){if(state==="serve"||state==="play"){prev=state;state="pause";show("pause")}}
 function resume(){if(state==="pause"){state=prev;show(null)}}
 window.addEventListener("pointermove",ptr);window.addEventListener("pointerdown",ptr);
-const kd=v=>e=>{const k=e.key;
+const kd=v=>e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;if(k.startsWith("Arrow"))e.preventDefault();
   if(k==="ArrowLeft"||(k==="a"&&mode!=="two"))keys.l=v;
   if(k==="ArrowRight"||(k==="d"&&mode!=="two"))keys.r=v;
   if(mode==="two"){if(k==="a")keys.l2=v;if(k==="d")keys.r2=v}
